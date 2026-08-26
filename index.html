@@ -312,11 +312,15 @@
   }
 
   .reveal{
+    opacity:1;
+    transform:none;
+  }
+  .reveal.pre-reveal{
     opacity:0;
     transform:translateY(28px);
     transition:opacity 0.7s ease, transform 0.7s ease;
   }
-  .reveal.in-view{ opacity:1; transform:translateY(0); }
+  .reveal.pre-reveal.in-view{ opacity:1; transform:translateY(0); }
 
   /* ---------- about ---------- */
   .about-grid{
@@ -1005,46 +1009,78 @@
 
 <script>
   // year
-  document.getElementById('year').textContent = new Date().getFullYear();
+  try {
+    document.getElementById('year').textContent = new Date().getFullYear();
+  } catch (e) { console.warn('Year fill skipped:', e); }
 
   // mobile menu
-  const hamburger = document.getElementById('hamburger');
-  const navLinks = document.getElementById('navLinks');
-  hamburger.addEventListener('click', () => {
-    const isOpen = navLinks.classList.toggle('open');
-    hamburger.classList.toggle('active');
-    hamburger.setAttribute('aria-expanded', isOpen);
-  });
-  navLinks.querySelectorAll('a').forEach(link => {
-    link.addEventListener('click', () => {
-      navLinks.classList.remove('open');
-      hamburger.classList.remove('active');
-      hamburger.setAttribute('aria-expanded', false);
-    });
-  });
+  try {
+    const hamburger = document.getElementById('hamburger');
+    const navLinks = document.getElementById('navLinks');
+    if (hamburger && navLinks) {
+      hamburger.addEventListener('click', () => {
+        const isOpen = navLinks.classList.toggle('open');
+        hamburger.classList.toggle('active');
+        hamburger.setAttribute('aria-expanded', isOpen);
+      });
+      navLinks.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
+          navLinks.classList.remove('open');
+          hamburger.classList.remove('active');
+          hamburger.setAttribute('aria-expanded', false);
+        });
+      });
+    }
+  } catch (e) { console.warn('Mobile menu setup skipped:', e); }
 
   // scroll reveal
+  // Elements are visible by default (see .reveal CSS). We only ever ADD the
+  // 'pre-reveal' (animated, opacity:0) state once we're sure we can also
+  // guarantee it gets removed again — so a failure here can never leave a
+  // section permanently invisible.
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (prefersReducedMotion) {
-    document.querySelectorAll('.reveal').forEach(el => el.classList.add('in-view'));
-  } else {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('in-view');
-          observer.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.12 });
-    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  try {
+    const revealEls = document.querySelectorAll('.reveal');
+    if (!prefersReducedMotion && 'IntersectionObserver' in window && revealEls.length) {
+      revealEls.forEach(el => el.classList.add('pre-reveal'));
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in-view');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.12 });
+      revealEls.forEach(el => observer.observe(el));
+
+      // Hard safety net: if any element somehow never intersects
+      // (e.g. unusual layout/zoom), force it visible after a short delay
+      // instead of leaving it hidden forever.
+      setTimeout(() => {
+        revealEls.forEach(el => el.classList.add('in-view'));
+      }, 4000);
+    }
+    // If reduced motion is on, IntersectionObserver is unsupported, or there
+    // are no .reveal elements, we simply do nothing — the base CSS already
+    // shows everything at full opacity.
+  } catch (e) {
+    console.warn('Scroll reveal disabled, content remains visible:', e);
+    document.querySelectorAll('.reveal').forEach(el => {
+      el.classList.remove('pre-reveal');
+      el.classList.add('in-view');
+    });
   }
 
   // ---------- animated graph-network background ----------
   // Nodes drift slowly and connect to nearby nodes with faint lines,
   // echoing the graph-streaming-algorithm project.
+  try {
   (function () {
     const canvas = document.getElementById('bg-canvas');
+    if (!canvas || !canvas.getContext) return;
     const ctx = canvas.getContext('2d');
+    if (!ctx) return;
     let width, height, nodes;
     const isSmall = window.innerWidth < 720;
     const NODE_COUNT = isSmall ? 26 : 52;
@@ -1110,6 +1146,7 @@
       }
     }
   })();
+  } catch (e) { console.warn('Background animation skipped:', e); }
 </script>
 
 </body>
