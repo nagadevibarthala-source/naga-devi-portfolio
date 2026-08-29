@@ -311,16 +311,15 @@
     background:var(--border);
   }
 
-  .reveal{
-    opacity:1;
-    transform:none;
-  }
-  .reveal.pre-reveal{
-    opacity:0;
-    transform:translateY(28px);
-    transition:opacity 0.7s ease, transform 0.7s ease;
-  }
-  .reveal.pre-reveal.in-view{ opacity:1; transform:translateY(0); }
+.reveal{
+  opacity:1;
+  transform:translateY(0);
+  transition:opacity 0.7s ease, transform 0.7s ease;
+}
+
+.reveal.in-view{
+  opacity:1;
+  transform:translateY(0);
 
   /* ---------- about ---------- */
   .about-grid{
